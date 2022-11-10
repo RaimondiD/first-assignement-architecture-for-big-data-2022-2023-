@@ -1,42 +1,35 @@
 from abc import abstractmethod
-from helperDT import DatabaseCredential, query, Data
+from helperDT import DatabaseCredential, Query, Data,QueryError
 import threading
 import time
+from DBconnection import DBconnection
 from typing import Tuple,Sequence
 
-class DBconnection:
-    @abstractmethod
-    def __init__(self,db : DatabaseCredential) -> None:
-        pass
-    @abstractmethod
-    def execute_query(self, query:query)->Tuple[str,Data] : pass
-
-    @abstractmethod
-    def getChanges(self, timestamp:int) -> Sequence[Tuple[int,query]]: pass
 
 
 class BatchSqlExtractor:
 
     def __init__(self, sourceDB: DatabaseCredential,
-                 histDb: DatabaseCredential) -> None:  # add paramse for the secondo db, create second database in attribute
-        self.oneStreamConnection = self.__connect(sourceDB)  # control update time
+                 histDb: DatabaseCredential,checkUpdateCond = 24*60*60*1000) -> None:  
+        self.sourceDBconnection = self.__connect(sourceDB)  #
         self.histDBConnection = self.__connect(histDb)
         self.lastUpdate = 0  # get the fresh changes
+        self.checkUpdateCond = checkUpdateCond
         self.__fullUpdate()
         x = threading.Thread(target=self.__synchronizer)
         x.start()
 
     def __synchronizer(self):
         while (True):
+            time.sleep(self.checkUpdateCond)   
             while (self.__updateCondtion()):
                 self.update()
-            time.sleep(60 * 60 * 24 * 1000)
 
     """ get the log that goes from the last ts
     listOfQueries -  [[timestamp1,query1], [timestamp2,query2]]
     getChanges - retrieve executed query """
     def update(self):
-        listOfQueries = DBconnection.getChanges(self, self.lastUpdate)
+        listOfQueries = self.sourceDBconnection.getChanges(self, self.lastUpdate)
         for queryWithTime in listOfQueries:
             try:
                 # execute every new query (insert, update and delete)
@@ -48,7 +41,7 @@ class BatchSqlExtractor:
 
     @abstractmethod
     def __updateCondition(
-            self) -> bool:  # implement the update policy based on the Month End Closing activities and the OneStream's load balance
+            self) -> bool:  # implement the update policy, can be implemented in differents way
         pass
 
     def __fullUpdate(
@@ -58,7 +51,10 @@ class BatchSqlExtractor:
         self.lastUpdate = time.time()
         data = self.__readFromOneStream(query)
         self.__insertHistDatabase(data)
-
+    def read(self, query:Query):
+        if(query.checkSqlInjection() or query.operation != "SELECT"):
+            raise QueryError
+        
     @abstractmethod
     def __connect(self, database: DatabaseCredential) -> DBconnection:
         pass
