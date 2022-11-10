@@ -19,7 +19,8 @@ class DBconnection:    #class used to make transparent the fact that the db is r
     @abstractmethod
     def initData(self,data:Data,dataStructure) -> None : pass  #initialize a db starting from a datastructure and some data
     @abstractmethod
-    def __selectAllData(self,dataStructure : TypedDict[str,TypedDict[str,Sequence[str]]]) -> Data :pass
+    def __selectAllData(self,dataStructure : TypedDict[str,TypedDict[str,Sequence[str]]]) -> Data :pass #use the data structure to compute the select query to collect
+                                                                                                        #the wole db or another more efficient methods if the dbAdapter expose it
     
 class CDCDBconnection(DBconnection):
     @abstractmethod
