@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from helperDT import DatabaseCredential, Query, Data,QueryError
+from helperDT import DatabaseCredential, Query, Data,QueryError,BulkCopyException
 import threading
 import time
 from DBconnection import DBconnection
@@ -45,15 +45,19 @@ class BatchSqlExtractor:
         pass
 
     def __fullUpdate(
-            self) -> None:  # He have to do a full copy of operationDb and report it on histDb, and update the lastUpdate field
-        query = f"SELECT{self.queryParams.columns} \
-             from {self.queryParams.tables}"
+            self) -> None: 
+        try:
+            data,structure = self.sourceDBconnection.getAllData()
+            self.histDBConnection.initData(data,structure)
+        except:
+            print("error in initial copy of data")
+            raise BulkCopyException
         self.lastUpdate = time.time()
-        data = self.__readFromOneStream(query)
-        self.__insertHistDatabase(data)
-    def read(self, query:Query):
+
+    def read(self, query:Query) -> Data:
         if(query.checkSqlInjection() or query.operation != "SELECT"):
             raise QueryError
+        return self.histDBConnection.execute_query(query)
         
     @abstractmethod
     def __connect(self, database: DatabaseCredential) -> DBconnection:

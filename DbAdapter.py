@@ -65,7 +65,7 @@ class DbAdapter:
     def __checkReadCredendial(self,tables,credential) -> Tuple[bool,str] : pass
 
     @abstractmethod
-    def getStructure(self) -> TypedDict[str,TypedDict[str,Sequence[str]]] : pass #return the struct of the db in form of dictionary. First key are the table names. 
+    def getStructure(self,credential:Credential) -> TypedDict[str,TypedDict[str,Sequence[str]]] : pass #return the struct of the db in form of dictionary. First key are the table names. 
                                                                                 #At each table are associated another dict with some other keys (for example column names)
 
     def __adInsert(self,query:Query) : 

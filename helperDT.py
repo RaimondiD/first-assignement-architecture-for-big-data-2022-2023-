@@ -25,3 +25,4 @@ class DatabaseCredential: #data type used to represent all the stuff necessary t
         self.credential = credential
 
 class QueryError(Exception): pass
+class BulkCopyException(Exception): pass
